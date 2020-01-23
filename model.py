@@ -41,8 +41,8 @@ class LSTM_baseline(nn.Module):
         self.hidden_cell = self.init_hidden()
         
     def init_hidden(self):
-        return (torch.zeros(1,1,self.hidden_dim).to(device),
-               torch.zeros(1,1,self.hidden_dim.to(device)))
+        return (torch.zeros(1,1,self.hidden_dim).to(self.device),
+               torch.zeros(1,1,self.hidden_dim.to(self.device)))
     
     def forward(self, inputs):
         lstm_out, self.hidden_cell = self.lstm(inputs, self.hidden_cell)
