@@ -19,7 +19,7 @@ class PreprocessedParsedReplayDataset(Dataset):
         
         self.feature_folder = feature_folder
         self.label_folder = label_folder
-        assert len(os.listdir(self.feature_folder))==len(os.listdir(self.label_folder)),         "Number of files in feature and label folders do not match."
+        assert len(os.listdir(self.feature_folder))==len(os.listdir(self.label_folder)), "Number of files in feature and label folders do not match."
         self.num_games = len(os.listdir(self.feature_folder))
         
     def __len__(self):
@@ -27,8 +27,8 @@ class PreprocessedParsedReplayDataset(Dataset):
     
     def __getitem__(self, ind):
         
-        feature_path = os.path.join(self.feature_folder,str(int(ind)),'.txt')
-        label_path = os.path.join(self.label_folder,str(int(ind)),'.txt')
+        feature_path = os.path.join(self.feature_folder,str(int(ind))+'.txt')
+        label_path = os.path.join(self.label_folder,str(int(ind))+'.txt')
         
         features = np.loadtxt(feature_path)
         labels = np.loadtxt(label_path)
@@ -50,7 +50,7 @@ def split_dataloader(total_num_games=-1, p_val=0.1, p_test=0.2, seed=3154, shuff
     if total_num_games == -1:
         last_ind = dataset_size
     else:
-        assert total_num_games > 0 and total_num_games <= dataset_size,        "Invalid total number of games. Has to be > 0 and < dataset size"
+        assert total_num_games > 0 and total_num_games <= dataset_size, "Invalid total number of games. Has to be > 0 and < dataset size"
         last_ind = total_num_games
         
     val_split = int(np.floor(p_val * last_ind))
@@ -69,3 +69,22 @@ def split_dataloader(total_num_games=-1, p_val=0.1, p_test=0.2, seed=3154, shuff
     
     return (train_loader, val_loader, test_loader)
 
+def single_dataloader(total_num_games=-1, seed=3154, shuffle=False):
+    
+    dataset = PreprocessedParsedReplayDataset()
+    
+    dataset_size = len(dataset)
+    all_ind = list(range(dataset_size))
+    
+    if shuffle:
+        np.random.seed(seed)
+        np.random.shuffle(all_ind)
+        
+    if total_num_games == -1:
+        last_ind = dataset_size
+    else:
+        assert total_num_games > 0 and total_num_games <= dataset_size, "Invalid total number of games. Has to be > 0 and < dataset size"
+        last_ind = total_num_games
+    all_loader = DataLoader(dataset)
+    
+    return all_loader

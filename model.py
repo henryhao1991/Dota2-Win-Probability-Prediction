@@ -14,13 +14,14 @@ class heuristic:
     def __init__(self,xp_scale_factor=1.0,total_scale_factor=10.0):
         self.xp_scale_factor = xp_scale_factor
         self.total_scale_factor = total_scale_factor
+        self.gold_xp_scale = torch.cat((torch.ones(10),self.xp_scale_factor*torch.ones(10)))
         
     def fit(self, inputs):
-        gold_xp_combined = np.sum(inputs,axis=1)
-        return 2*sigmoid(gold_xp_combined) - 1
+        gold_xp_combined = torch.sum(inputs,1)
+        return self.sigmoid(gold_xp_combined/self.total_scale_factor)
     
     def sigmoid(self, inputs):
-        return 1/(1+math.exp(inputs))
+        return 1/(1+torch.exp(-inputs))
 
 
 class LSTM_baseline(nn.Module):
