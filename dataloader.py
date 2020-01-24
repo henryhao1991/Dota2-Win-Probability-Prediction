@@ -8,6 +8,18 @@ import os
 import numpy as np
 
 
+class PadSequence:
+    def __call__(self, batch):
+        #Each element in batch is (features, labels)
+        sorted_batch = sorted(batch, key=lambda x: x[0].shape[0], reverse=True)
+
+        sequences = [x[0] for x in sorted_batch]
+        sequences_padded = torch.nn.utils.rnn.pad_sequence(sequences, batch_first=True)
+
+        labels = [x[1] for x in sorted_batch]
+        labels_padded = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True)
+        return sequences_padded, labels_padded
+
 class PreprocessedParsedReplayDataset(Dataset):
     """
     Customed preprocessed input files for parsed game replays.
@@ -33,10 +45,10 @@ class PreprocessedParsedReplayDataset(Dataset):
         features = np.loadtxt(feature_path)
         labels = np.loadtxt(label_path)
         
-        return (features, labels)
+        return torch.Tensor(features), torch.Tensor(labels)
 
 
-def split_dataloader(total_num_games=-1, p_val=0.1, p_test=0.2, seed=3154, shuffle=True):
+def split_dataloader(batch_size=1, total_num_games=-1, p_val=0.1, p_test=0.2, seed=3154, shuffle=True):
     
     dataset = PreprocessedParsedReplayDataset()
     
@@ -63,11 +75,12 @@ def split_dataloader(total_num_games=-1, p_val=0.1, p_test=0.2, seed=3154, shuff
     sample_val = SubsetRandomSampler(val_ind)
     sample_test = SubsetRandomSampler(test_ind)
     
-    train_loader = DataLoader(dataset, sampler=sample_train)
-    val_loader = DataLoader(dataset, sampler=sample_val)
-    test_loader = DataLoader(dataset, sampler=sample_test)
+    train_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_train, collate_fn=PadSequence())
+    val_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_val, collate_fn=PadSequence())
+    test_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_test, collate_fn=PadSequence())
     
     return (train_loader, val_loader, test_loader)
+
 
 def single_dataloader(total_num_games=-1, seed=3154, shuffle=False):
     
