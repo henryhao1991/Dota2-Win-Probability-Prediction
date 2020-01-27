@@ -11,7 +11,7 @@ class heuristic_run:
     Parameters can be tuned in model.heuristic
     """
     def __init__(self):
-        self.dataloader = single_dataloader()
+        self.dataloader, _, _ = split_dataloader(p_val=0.0, p_test = 0.0, shuffle=False)
         self.num_data = len(self.dataloader)
         self.model = heuristic()
         
@@ -26,9 +26,9 @@ class heuristic_run:
     def get_accuracy(self, threshold=0.25):
         
         acc = 0.0
-        for (features, labels) in self.dataloader:
+        for data in self.dataloader:
             
-            inputs, result = self.get_inputs_and_results(features, labels)
+            inputs, result = self.get_inputs_and_results(data["features"], data["labels"])
             output = self.model.fit(inputs)[-1]
             if (output-0.5)*result > threshold:
                 acc += 1/self.num_data
@@ -37,8 +37,8 @@ class heuristic_run:
     
     def get_single_graph(self, ind):
         
-        features, labels = self.dataloader.dataset[ind]
-        inputs, _ = self.get_inputs_and_results(torch.tensor(features), labels)
+        data = self.dataloader.dataset[ind]
+        inputs, _ = self.get_inputs_and_results(data["features"], data["labels"])
         outputs = self.model.fit(inputs)
         
         return outputs

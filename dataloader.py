@@ -6,19 +6,8 @@ from torch.utils.data.sampler import SubsetRandomSampler
 # Other libraries for data manipulation and visualization
 import os
 import numpy as np
+from sklearn.model_selection import train_test_split
 
-
-class PadSequence:
-    def __call__(self, batch):
-        #Each element in batch is (features, labels)
-        sorted_batch = sorted(batch, key=lambda x: x[0].shape[0], reverse=True)
-
-        sequences = [x[0] for x in sorted_batch]
-        sequences_padded = torch.nn.utils.rnn.pad_sequence(sequences, batch_first=True)
-
-        labels = [x[1] for x in sorted_batch]
-        labels_padded = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True)
-        return sequences_padded, labels_padded
 
 class PreprocessedParsedReplayDataset(Dataset):
     """
@@ -45,43 +34,53 @@ class PreprocessedParsedReplayDataset(Dataset):
         features = np.loadtxt(feature_path)
         labels = np.loadtxt(label_path)
         
-        return torch.Tensor(features), torch.Tensor(labels)
+        return {"features":torch.Tensor(features), "labels":torch.Tensor(labels)}
 
 
-def split_dataloader(batch_size=1, total_num_games=-1, p_val=0.1, p_test=0.2, seed=3154, shuffle=True):
+def PadSequence(batch):
+        #Each element in batch is (features, labels)
+    sequences = [x["features"] for x in batch]
+    sequences_padded = torch.nn.utils.rnn.pad_sequence(sequences, batch_first=True)
+
+    labels = [x["labels"] for x in batch]
+    labels_padded = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True)
+    return {"features":sequences_padded, "labels":labels_padded}
+
+
+def split_dataloader(batch_size=1, total_num_games=-1, p_val=0.1, p_test=0.2, seed=3154, shuffle=True, 
+                    feature_folder='./data/features/', label_folder='./data/labels/'):
     
-    dataset = PreprocessedParsedReplayDataset()
+    dataset = PreprocessedParsedReplayDataset(feature_folder, label_folder)
     
-    dataset_size = len(dataset)
+    if total_num_games == -1:
+        dataset_size = len(dataset)
+    else:
+        assert total_num_games > 0 and total_num_games <= len(dataset), "Invalid total number of games. Has to be > 0 and < dataset size"
+        dataset_size = total_num_games
+        
     all_ind = list(range(dataset_size))
     
-    if shuffle:
-        np.random.seed(seed)
-        np.random.shuffle(all_ind)
-        
-    if total_num_games == -1:
-        last_ind = dataset_size
+    if p_val > 0:
+        train_ind, val_ind = train_test_split(all_ind, test_size=p_val, random_state=seed, shuffle=shuffle)
+        sample_val = SubsetRandomSampler(val_ind)
+        val_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_val, collate_fn=PadSequence)
     else:
-        assert total_num_games > 0 and total_num_games <= dataset_size, "Invalid total number of games. Has to be > 0 and < dataset size"
-        last_ind = total_num_games
+        train_ind = all_ind[:]
+        val_loader = None
         
-    val_split = int(np.floor(p_val * last_ind))
-    train_ind, val_ind = all_ind[val_split:last_ind], all_ind[:val_split]
-    
-    test_split = int(np.floor(p_test * len(train_ind)))
-    train_ind, test_ind = all_ind[test_split:last_ind], all_ind[:test_split]
+    if p_test > 0:
+        train_ind, test_ind = train_test_split(train_ind, test_size=p_test, random_state=seed, shuffle=shuffle)
+        sample_test = SubsetRandomSampler(test_ind)
+        test_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_test, collate_fn=PadSequence)
+    else:
+        test_loader = None
     
     sample_train = SubsetRandomSampler(train_ind)
-    sample_val = SubsetRandomSampler(val_ind)
-    sample_test = SubsetRandomSampler(test_ind)
-    
-    train_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_train, collate_fn=PadSequence())
-    val_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_val, collate_fn=PadSequence())
-    test_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_test, collate_fn=PadSequence())
+    train_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_train, collate_fn=PadSequence)
     
     return (train_loader, val_loader, test_loader)
 
-
+'''
 def single_dataloader(total_num_games=-1, seed=3154, shuffle=False):
     
     dataset = PreprocessedParsedReplayDataset()
@@ -101,3 +100,4 @@ def single_dataloader(total_num_games=-1, seed=3154, shuffle=False):
     all_loader = DataLoader(dataset)
     
     return all_loader
+'''
