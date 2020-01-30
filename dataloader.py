@@ -34,8 +34,9 @@ class PreprocessedParsedReplayDataset(Dataset):
         #To do: check if file exists before using np.loadtxt
         features = np.loadtxt(feature_path)
         labels = np.loadtxt(label_path)
+        length = len(labels)
         
-        return {"features":torch.Tensor(features), "labels":torch.Tensor(labels)}
+        return {"features":torch.Tensor(features), "labels":torch.Tensor(labels), "lengths":length}
 
 
 def PadSequence(batch):
@@ -52,12 +53,16 @@ def PadSequence(batch):
     labels = [x["labels"] for x in batch]
     labels_padded = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True)
     
+    #Get the lengths but don't do anything
+    lengths = [x["lengths"] for x in batch]
+    lengths = torch.Tensor(lengths)
+    
     #return the sequences/features and labels as a dictionary
-    return {"features":sequences_padded, "labels":labels_padded}
+    return {"features":sequences_padded, "labels":labels_padded, "lengths":lengths}
 
 
-def split_dataloader(batch_size=1, total_num_games=-1, p_val=0.1, p_test=0.2, seed=3154, shuffle=True, 
-                    feature_folder='./data/features/', label_folder='./data/labels/'):
+def split_dataloader(dataset, batch_size=1, total_num_games=-1, p_val=0.1, p_test=0.2, seed=3154, shuffle=True, 
+                    collate_fn=None, **kwargs):
     '''
     The function to split the dataset into training/validation/test sets.
     If total_num_games == -1, all data will be used. Otherwise will only use the first total_num_games number of data.
@@ -65,7 +70,7 @@ def split_dataloader(batch_size=1, total_num_games=-1, p_val=0.1, p_test=0.2, se
     '''
     
     #Load the dataset from files in the respective folders
-    dataset = PreprocessedParsedReplayDataset(feature_folder, label_folder)
+    dataset = dataset(**kwargs)
     
     #Check total_num_games and get the desired dataset size.
     if total_num_games == -1:
@@ -80,7 +85,7 @@ def split_dataloader(batch_size=1, total_num_games=-1, p_val=0.1, p_test=0.2, se
     if p_val > 0:
         train_ind, val_ind = train_test_split(all_ind, test_size=p_val, random_state=seed, shuffle=shuffle)
         sample_val = SubsetRandomSampler(val_ind)
-        val_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_val, collate_fn=PadSequence)
+        val_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_val, collate_fn=collate_fn)
     else:
         train_ind = all_ind[:]
         val_loader = None
@@ -89,12 +94,12 @@ def split_dataloader(batch_size=1, total_num_games=-1, p_val=0.1, p_test=0.2, se
     if p_test > 0:
         train_ind, test_ind = train_test_split(train_ind, test_size=p_test, random_state=seed, shuffle=shuffle)
         sample_test = SubsetRandomSampler(test_ind)
-        test_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_test, collate_fn=PadSequence)
+        test_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_test, collate_fn=collate_fn)
     else:
         test_loader = None
     
     sample_train = SubsetRandomSampler(train_ind)
-    train_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_train, collate_fn=PadSequence)
+    train_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_train, collate_fn=collate_fn)
     
     #Return the dictionary of all the dataloaders
     return {"train":train_loader, "val":val_loader, "test":test_loader}
