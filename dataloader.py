@@ -62,7 +62,7 @@ def PadSequence(batch):
 
 
 def split_dataloader(dataset, batch_size=1, total_num_games=-1, p_val=0.1, p_test=0.2, seed=3154, shuffle=True, 
-                    collate_fn=None, **kwargs):
+                    collate_fn=None, feature_folder='./data/features/', label_folder='./data/labels/'):
     '''
     The function to split the dataset into training/validation/test sets.
     If total_num_games == -1, all data will be used. Otherwise will only use the first total_num_games number of data.
@@ -70,7 +70,7 @@ def split_dataloader(dataset, batch_size=1, total_num_games=-1, p_val=0.1, p_tes
     '''
     
     #Load the dataset from files in the respective folders
-    dataset = dataset(**kwargs)
+    dataset = dataset(feature_folder, label_folder)
     
     #Check total_num_games and get the desired dataset size.
     if total_num_games == -1:
@@ -85,7 +85,10 @@ def split_dataloader(dataset, batch_size=1, total_num_games=-1, p_val=0.1, p_tes
     if p_val > 0:
         train_ind, val_ind = train_test_split(all_ind, test_size=p_val, random_state=seed, shuffle=shuffle)
         sample_val = SubsetRandomSampler(val_ind)
-        val_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_val, collate_fn=collate_fn)
+        if collate_fn:
+            val_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_val, collate_fn=collate_fn)
+        else:
+            val_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_val)
     else:
         train_ind = all_ind[:]
         val_loader = None
@@ -94,12 +97,18 @@ def split_dataloader(dataset, batch_size=1, total_num_games=-1, p_val=0.1, p_tes
     if p_test > 0:
         train_ind, test_ind = train_test_split(train_ind, test_size=p_test, random_state=seed, shuffle=shuffle)
         sample_test = SubsetRandomSampler(test_ind)
-        test_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_test, collate_fn=collate_fn)
+        if collate_fn:
+            test_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_test, collate_fn=collate_fn)
+        else:
+            test_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_test)
     else:
         test_loader = None
     
     sample_train = SubsetRandomSampler(train_ind)
-    train_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_train, collate_fn=collate_fn)
+    if collate_fn:
+        train_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_train, collate_fn=collate_fn)
+    else:
+        train_loader = DataLoader(dataset, batch_size=batch_size, sampler=sample_train)
     
     #Return the dictionary of all the dataloaders
     return {"train":train_loader, "val":val_loader, "test":test_loader}

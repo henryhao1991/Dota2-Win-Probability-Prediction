@@ -11,7 +11,7 @@ class heuristic:
     with scaling and bias.
     """
     
-    def __init__(self,xp_scale_factor=1.0,total_scale_factor=10.0):
+    def __init__(self, xp_scale_factor=1.0, total_scale_factor=10.0):
         self.xp_scale_factor = xp_scale_factor
         self.total_scale_factor = total_scale_factor
         self.gold_xp_scale = torch.cat((torch.ones(10),self.xp_scale_factor*torch.ones(10)))
@@ -29,7 +29,7 @@ class LSTM_baseline(nn.Module):
     LSTM model for win probability prediction.
     """
     
-    def __init__(self,input_dim,hidden_dim,output_dim,batch_size=1,device=torch.device('cpu')):
+    def __init__(self, input_dim, hidden_dim, output_dim=1, batch_size=10, device=torch.device('cpu')):
         
         super(LSTM_baseline, self).__init__()
         self.input_dim = input_dim
@@ -49,5 +49,5 @@ class LSTM_baseline(nn.Module):
         lstm_out, hidden_cell = self.lstm(inputs, self.hidden_cell)
         self.hidden_cell = tuple([hidden_.detach_() for hidden_ in hidden_cell])
         lstm_out = self.linear(lstm_out)
-        return lstm_out
+        return torch.tanh(lstm_out)
 
