@@ -1,9 +1,13 @@
+# PyTorch imports
+import torch
+
+# Custom Python files
 from dataloader import *
 from model import *
+
+# Other libraries
 import numpy as np
 from math import ceil, floor
-import torch
-from matplotlib import pyplot as plt
 
 class TrainingAndEvaluation:
     """
@@ -12,10 +16,10 @@ class TrainingAndEvaluation:
     def __init__(self, *args, model='LSTM_baseline', **kwargs):
         """
         Inputs:
-        *args: the arguments passing to the selected model.
+            *args: the arguments passing to the selected model.
         Keywords:
-        model: string. The name of the selected model.
-        **kwargs: the keywords passing to the selected model.
+            model: string. The name of the selected model.
+            **kwargs: the keywords passing to the selected model.
         """
         self.model_name = {'heuristic':HeuristicTrain, 'LSTM_baseline':LSTMBaselineTrain}
         assert model in self.model_name.keys(), "Invalid model name."
@@ -30,11 +34,11 @@ class TrainingAndEvaluation:
         
     def get_accuracy(self, threshold=0.1, percentage=0.05):
         """
-        Outputs:
-        acc_array: numpy.ndarray. The array of the accuracy at different percentage of the game.
+        Returns:
+            acc_array: numpy.ndarray. The array of the accuracy at different percentage of the game.
         Keywords:
-        threshold: float. The threshold that we want to predict the winner. E.g., if set to be 0.1, >0.6 will be predicted as radiant win and <0.4 will be predicted as dire win.
-        percentage: float. The percentage interval to check for accuracy.
+            threshold: float. The threshold that we want to predict the winner. E.g., if set to be 0.1, >0.6 will be predicted as radiant win and <0.4 will be predicted as dire win.
+            percentage: float. The percentage interval to check for accuracy.
         """
         #Find the number of time slices that we want to check for accuracy, and initialize the output accuracy array to 0.
         number_of_slices = ceil(1.0/percentage)
@@ -75,9 +79,9 @@ class TrainingAndEvaluation:
     def get_single_game_prediction(self, ind):
         """
         Inputs:
-        ind: int. The index of the game that we want to get the graph.
-        Outputs:
-        prediction: torch.Tensor. the prediction of probability that radiant will win with 30 sec interval.
+            ind: int. The index of the game that we want to get the graph.
+        Returns:
+            prediction: torch.Tensor. the prediction of probability that radiant will win with 30 sec interval.
         """
         data = self.model.dataloader["test"].dataset[ind]
         prediction = self.model.predict(data)
@@ -93,9 +97,9 @@ class HeuristicTrain:
     def __init__(self, xp_scale_factor=1.0, total_scale_factor=10.0, **kwargs):
         """
         Keywords:
-        xp_scale_factor: float. The keyword passing to model.heuristic class.
-        total_scale_factor: float. The keyword passing to model.heuristic class.
-        **kwargs: The keywords passing to dataloader.split_dataloader function.
+            xp_scale_factor: float. The keyword passing to model.heuristic class.
+            total_scale_factor: float. The keyword passing to model.heuristic class.
+            **kwargs: The keywords passing to dataloader.split_dataloader function.
         """
         self.dataloader = split_dataloader(PreprocessedParsedReplayDataset, **kwargs)
         self.model = heuristic(xp_scale_factor, total_scale_factor)
@@ -105,9 +109,9 @@ class HeuristicTrain:
         Preprocess the data to use for the heuristic model.
         
         Inputs:
-        features: torch.Tensor, size=(batch_size, *, input_dim). * is the length of the game. Input features that needs to be preprocessed. Only batch_size of 1 is supported currently.
-        Outputs:
-        processed_inputs: torch.Tensor, size=(*, 20). * is the length of the game. Preprocessed features for the heuristic model. Only the individual gold and experience are used. positive for radiant, and negative for dire.
+            features: torch.Tensor, size=(batch_size, *, input_dim). * is the length of the game. Input features that needs to be preprocessed. Only batch_size of 1 is supported currently.
+        Returns:
+            processed_inputs: torch.Tensor, size=(*, 20). * is the length of the game. Preprocessed features for the heuristic model. Only the individual gold and experience are used. positive for radiant, and negative for dire.
         """
         rad_dire = torch.cat((torch.ones(5),-1.0*torch.ones(5),torch.ones(5),-1.0*torch.ones(5)))
         processed_inputs = features.squeeze()[:,:20].to(torch.float) * rad_dire.to(torch.float)
@@ -126,11 +130,11 @@ class HeuristicTrain:
         Get the lengths and the final results of games.
         
         Inputs:
-        batch_data: torch.util.data.Dataset. Should be dataloader.PreprocessedParsedReplayDataset class.
-        Outputs:
-        dictionary
-            keys/values: "lengths"/torch.Tensor, size(batch_size). Lengths of the games in batch (Should only be 1 now though).
-                         "results"/numpy.ndarray, size(batch_size). Results of the games in the batch (Should only be 1 now though). -1 if dire winned and +1 if radiant winned.
+            batch_data: torch.util.data.Dataset. Should be dataloader.PreprocessedParsedReplayDataset class.
+        Returns:
+            dictionary:
+                        "lengths":torch.Tensor, size(batch_size). Lengths of the games in batch (Should only be 1 now though).
+                        "results":numpy.ndarray, size(batch_size). Results of the games in the batch (Should only be 1 now though). -1 if dire winned and +1 if radiant winned.
         """
         end_labels = batch_data["labels"][:,-1].numpy()
         results = np.where(end_labels>0, 1.0, -1.0)
@@ -141,9 +145,9 @@ class HeuristicTrain:
         Make predictions with a 30 second interval.
         
         Inputs:
-        batch_data: torch.util.data.Dataset. Should be dataloader.PreprocessedParsedReplayDataset class.
-        Outputs:
-        predictions: torch.Tensor, size=(batch_size, L). Predictions of the probability that radiant will win. batch_size should only be 1. L is the length of the game.
+            batch_data: torch.util.data.Dataset. Should be dataloader.PreprocessedParsedReplayDataset class.
+        Returns:
+            predictions: torch.Tensor, size=(batch_size, L). Predictions of the probability that radiant will win. batch_size should only be 1. L is the length of the game.
         """
         inputs = self.preprocess(batch_data["features"])
         predictions = self.model.fit(inputs)
@@ -159,13 +163,13 @@ class LSTMBaselineTrain:
                  batch_size=10, device=torch.device('cpu'), **kwargs):
         """
         Inputs:
-        input_dim, hidden_dim: arguments passing to model.LSTM_baseline class.
+            input_dim, hidden_dim: arguments passing to model.LSTM_baseline class.
         Keywords:
-        output_dim, batch_size, device: keywords passing to model.LSTM_baseline class.
-        num_epoches: int. Number of epochs used for training.
-        lr: float. Learning rate used for training.
-        loss_function: torch.nn loss function. Loss function used for the training.
-        **kwargs: keywords passing to dataloader.split_dataloader function.
+            output_dim, batch_size, device: keywords passing to model.LSTM_baseline class.
+            num_epoches: int. Number of epochs used for training.
+            lr: float. Learning rate used for training.
+            loss_function: torch.nn loss function. Loss function used for the training.
+            **kwargs: keywords passing to dataloader.split_dataloader function.
         """
         self.dataloader = split_dataloader(PreprocessedParsedReplayDataset, batch_size=batch_size, **kwargs)
         self.model = LSTM_baseline(input_dim, hidden_dim, output_dim=output_dim, batch_size=batch_size, device=device)
@@ -178,12 +182,12 @@ class LSTMBaselineTrain:
         """
         The function to train the model.
         
-        Outputs:
-        dictionary
-            keys/values: "train_loss"/list. Average training loss at each epoch.
-                         "val_loss"/list. Average validation loss at each epoch.
+        Returns:
+            dictionary:
+                    "train_loss":list. Average training loss at each epoch.
+                    "val_loss":list. Average validation loss at each epoch.
         Keywords:
-        epoch_print: int. Number of epochs between printing out the train and validation loss.
+            epoch_print: int. Number of epochs between printing out the train and validation loss.
         """
         #List of verage training and validation loss
         ave_train_loss = []
@@ -246,11 +250,11 @@ class LSTMBaselineTrain:
         Get the lengths and the final results of games.
         
         Inputs:
-        batch_data: torch.util.data.Dataset. Should be dataloader.PreprocessedParsedReplayDataset class.
-        Outputs:
-        dictionary
-            keys/values: "lengths"/torch.Tensor, size(batch_size). Lengths of the games in batch.
-                         "results"/numpy.ndarray, size(batch_size). Results of the games in the batch. -1 if dire winned and +1 if radiant winned.
+            batch_data: torch.util.data.Dataset. Should be dataloader.PreprocessedParsedReplayDataset class.
+        Returns:
+            dictionary:
+                        "lengths":torch.Tensor, size(batch_size). Lengths of the games in batch.
+                        "results":numpy.ndarray, size(batch_size). Results of the games in the batch. -1 if dire winned and +1 if radiant winned.
         """
         end_labels = batch_data["labels"][:,-1].numpy()
         results = np.where(end_labels>0, 1.0, -1.0)
@@ -261,9 +265,9 @@ class LSTMBaselineTrain:
         Make predictions with a 30 second interval.
         
         Inputs:
-        batch_data: torch.util.data.Dataset. Should be dataloader.PreprocessedParsedReplayDataset class.
-        Outputs:
-        predictions: torch.Tensor, size=(batch_size, L). Predictions of the probability that radiant will win. batch_size should only be 1. L is the length of the game.
+            batch_data: torch.util.data.Dataset. Should be dataloader.PreprocessedParsedReplayDataset class.
+        Returns:
+            predictions: torch.Tensor, size=(batch_size, L). Predictions of the probability that radiant will win. batch_size should only be 1. L is the length of the game.
         """
         with torch.no_grad():
             dim = batch_data["features"].shape
