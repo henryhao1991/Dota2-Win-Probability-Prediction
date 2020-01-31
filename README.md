@@ -12,4 +12,6 @@ E-sports is a rapidly growing field and draws a lot of public attention this yea
 
 # Build Model
 
+TBD. Maybe will try RNN or its variants first.
+
 # Analysis
