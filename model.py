@@ -62,14 +62,14 @@ class LSTM_baseline(nn.Module):
         self.device = device
         self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, batch_first=True)
         self.linear = nn.Linear(self.hidden_dim, self.output_dim)
-        self.hidden_cell = self.init_hidden()
+        self.hidden_cell = self.init_hidden(batch_size)
         
-    def init_hidden(self):
+    def init_hidden(self, batch_size):
         """
         The function to initialize the hidden layer.
         """
-        return (torch.zeros(1,self.batch_size,self.hidden_dim).to(self.device),
-               torch.zeros(1,self.batch_size,self.hidden_dim).to(self.device))
+        return (torch.zeros(1,batch_size,self.hidden_dim).to(self.device),
+               torch.zeros(1,batch_size,self.hidden_dim).to(self.device))
     
     def forward(self, inputs):
         """

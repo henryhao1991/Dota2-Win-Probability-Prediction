@@ -86,20 +86,29 @@ def PadSequence(batch):
     It will be passed to DataLoader as the keyword argument of collate_fn.
     '''
     
+    #Get the lengths but don't do anything
+    lengths = [x["lengths"] for x in batch]
+    max_length = max(lengths)
+    lengths = torch.Tensor(lengths)
+    
     #Get the sequences, i.e., features and pad them
     sequences = [x["features"] for x in batch]
-    sequences_padded = torch.nn.utils.rnn.pad_sequence(sequences, batch_first=True)
+    sequences_padded = []
+    for s in sequences:
+        while s.shape[0] < max_length:
+            s = torch.cat((s, s[-1,:].view(1,-1)))
+        sequences_padded.append(s)
     
     #Get the labels and pad them
     labels = [x["labels"] for x in batch]
-    labels_padded = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True)
-    
-    #Get the lengths but don't do anything
-    lengths = [x["lengths"] for x in batch]
-    lengths = torch.Tensor(lengths)
+    labels_padded = []
+    for l in labels:
+        while l.shape[0] < max_length:
+            l = torch.cat((l, l[-1].view(1)))
+        labels_padded.append(l)
     
     #return the padded_features/padded_labels/lengths_of_game and labels as a dictionary
-    return {"features":sequences_padded, "labels":labels_padded, "lengths":lengths}
+    return {"features":torch.stack(sequences_padded), "labels":torch.stack(labels_padded), "lengths":lengths}
 
 
 def split_dataloader(dataset, batch_size=1, total_num_games=-1, p_val=0.1, p_test=0.2, seed=3154, shuffle=True, 

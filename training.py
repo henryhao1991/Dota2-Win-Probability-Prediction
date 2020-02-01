@@ -208,13 +208,13 @@ class LSTMBaselineTrain:
                 train_count += 1
                 
                 #Initialize the hidden layer and zero the stored gradient.
-                self.model.hidden_cell = self.model.init_hidden()
+                self.model.hidden_cell = self.model.init_hidden(self.model.batch_size)
                 self.model.zero_grad()
 
                 outputs = self.model(sequences).squeeze()
                 loss = self.loss_function(outputs, labels)
                 
-                #Calculate gradient and optimize the loss.
+                #Backprop and optimize.
                 loss.backward()
                 self.optimizer.step()
 
@@ -229,6 +229,8 @@ class LSTMBaselineTrain:
                     
                     sequences, labels = batch["features"].to(self.model.device), batch["labels"].to(self.model.device)
                     val_count += 1
+                    
+                    self.model.hidden_cell = self.model.init_hidden(self.model.batch_size)
 
                     outputs = self.model(sequences)
                     loss = self.loss_function(outputs.squeeze(), labels)
@@ -274,13 +276,12 @@ class LSTMBaselineTrain:
             
             #If batch_size != 1
             if len(dim) == 3:
-                self.model.hidden_cell = self.model.init_hidden()
+                self.model.hidden_cell = self.model.init_hidden(self.model.batch_size)
                 predictions = self.model(batch_data["features"])
                 
             #If batch_size == 1, append a new dimension of 1.
             else:
-                self.model.batch_size = 1
-                self.model.hidden_cell = self.model.init_hidden()
+                self.model.hidden_cell = self.model.init_hidden(1)
                 predictions = self.model(batch_data["features"].view(1,dim[0],dim[1]))
                 
         #predictions is after tanh function, so should scale to (0,1) as the predicted probability of radiant win.
