@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 
-# Other libraries for data manipulation and visualization
+# Other libraries
 import os
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -33,12 +33,12 @@ class PreprocessedParsedReplayDataset(Dataset):
     def __getitem__(self, ind):
         """
         Inputs:
-        ind: int. The index of the data.
-        Outputs:
-        dictionary.
-            keys/values: "features"/torch.Tensor, size=(*,32) * is the length of the game. Input features of the model.
-                         "labels"/torch.Tensor, size=(*) * is the length of the game. Label of the model.
-                         "lengths"/int. Length of the game, used for prediction and generating probability graph of a single game.
+            ind: int. The index of the data.
+        Returns:
+            dictionary:
+                        "features":torch.Tensor, size=(*,32) * is the length of the game. Input features of the model.
+                        "labels":torch.Tensor, size=(*) * is the length of the game. Label of the model.
+                        "lengths":int. Length of the game, used for prediction and generating probability graph of a single game.
         """
         feature_path = os.path.join(self.feature_folder,str(int(ind))+'.txt')
         label_path = os.path.join(self.label_folder,str(int(ind))+'.txt')
@@ -50,6 +50,34 @@ class PreprocessedParsedReplayDataset(Dataset):
         
         #Return features/labels/lengths_of_game as a dictionary
         return {"features":torch.Tensor(features), "labels":torch.Tensor(labels), "lengths":length}
+    
+    
+class Hero2vecDataset(Dataset):
+    '''
+    The dataloader class to load data for the hero2vec training.
+    '''
+    
+    def __init__(self, lineup_file = './data/pro_lineup.txt'):
+        assert os.path.exists(lineup_file), "Lineup file doesn't exist."
+        self.lineup = np.loadtxt(lineup_file) - 1
+        
+    def __len__(self):
+        return len(self.lineup) * 5
+    
+    def __getitem__(self, ind):
+        '''
+        Inputs:
+            ind: int
+        Returns:
+            dictionary:
+                        "context": torch.LongTensor, size = (4,). The 4 context heroes within the team.
+                        "target": int. The target hero
+        '''
+        game_ind, hero_ind = divmod(ind,5)
+        context_heroes = np.concatenate((self.lineup[game_ind, :hero_ind], self.lineup[game_ind, hero_ind+1:]))
+        target = self.lineup[game_ind, hero_ind]
+
+        return {"context":torch.LongTensor(context_heroes), "target":int(target)}
 
 
 def PadSequence(batch):
@@ -58,20 +86,29 @@ def PadSequence(batch):
     It will be passed to DataLoader as the keyword argument of collate_fn.
     '''
     
+    #Get the lengths but don't do anything
+    lengths = [x["lengths"] for x in batch]
+    max_length = max(lengths)
+    lengths = torch.Tensor(lengths)
+    
     #Get the sequences, i.e., features and pad them
     sequences = [x["features"] for x in batch]
-    sequences_padded = torch.nn.utils.rnn.pad_sequence(sequences, batch_first=True)
+    sequences_padded = []
+    for s in sequences:
+        while s.shape[0] < max_length:
+            s = torch.cat((s, s[-1,:].view(1,-1)))
+        sequences_padded.append(s)
     
     #Get the labels and pad them
     labels = [x["labels"] for x in batch]
-    labels_padded = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True)
-    
-    #Get the lengths but don't do anything
-    lengths = [x["lengths"] for x in batch]
-    lengths = torch.Tensor(lengths)
+    labels_padded = []
+    for l in labels:
+        while l.shape[0] < max_length:
+            l = torch.cat((l, l[-1].view(1)))
+        labels_padded.append(l)
     
     #return the padded_features/padded_labels/lengths_of_game and labels as a dictionary
-    return {"features":sequences_padded, "labels":labels_padded, "lengths":lengths}
+    return {"features":torch.stack(sequences_padded), "labels":torch.stack(labels_padded), "lengths":lengths}
 
 
 def split_dataloader(dataset, batch_size=1, total_num_games=-1, p_val=0.1, p_test=0.2, seed=3154, shuffle=True, 
@@ -79,21 +116,21 @@ def split_dataloader(dataset, batch_size=1, total_num_games=-1, p_val=0.1, p_tes
     '''
     The function to split the dataset into training/validation/test sets.
     Inputs:
-    dataset: torch.util.data.Dataset. Dataset used for the model.
-    Outputs:
-    dictionary.
-        keys/values: "train"/torch.utils.data.DataLoader. Dataloader for training set.
-                     "val"/torch.utils.data.DataLoader. Dataloader for validation set.
-                     "test"/torch.utils.data.DataLoader Dataloader for test set.
+        dataset: torch.util.data.Dataset. Dataset used for the model.
+    Returns:
+        dictionary.
+                    "train":torch.utils.data.DataLoader. Dataloader for training set.
+                    "val":torch.utils.data.DataLoader. Dataloader for validation set.
+                    "test":torch.utils.data.DataLoader Dataloader for test set.
     Keywords:
-    batch_size: int. The batch size for the model inputs.
-    total_num_games: int. Total number of games used. if -1, then all the data in the dataset will be used.
-    p_val: float. Percentage of data used for validation set. if 0 return None as validation dataset.
-    p_test: float. Percentage of data used for test set. if 0, return None as test dataset.
-    seed: int. Random seed used.
-    shuffle: bool. If shuffle the dataset or not.
-    collate_fn: the collate function passed into the dataloader. for more information, check the PyTorch documentation of Dataloader class.
-    **kwargs: the keywords passing to the dataset class.
+        batch_size: int. The batch size for the model inputs.
+        total_num_games: int. Total number of games used. if -1, then all the data in the dataset will be used.
+        p_val: float. Percentage of data used for validation set. if 0 return None as validation dataset.
+        p_test: float. Percentage of data used for test set. if 0, return None as test dataset.
+        seed: int. Random seed used.
+        shuffle: bool. If shuffle the dataset or not.
+        collate_fn: the collate function passed into the dataloader. for more information, check the PyTorch documentation of Dataloader class.
+        **kwargs: the keywords passing to the dataset class.
     '''
     
     #Load the dataset from files in the respective folders
