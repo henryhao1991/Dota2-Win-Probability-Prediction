@@ -5,6 +5,7 @@ import torch.optim as optim
 
 # Other libraries
 import numpy as np
+from collections import OrderedDict
 import math
 
 
@@ -14,7 +15,7 @@ class heuristic:
     with scaling and bias.
     """
     
-    def __init__(self, xp_scale_factor=1.0, total_scale_factor=10.0):
+    def __init__(self, xp_scale_factor=1.0, total_scale_factor=2.0):
         """
         Keywords:
             xp_scale_factor: Float. The scaling factor between total gold and total experience.
@@ -59,7 +60,14 @@ class LSTM_baseline(nn.Module):
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.batch_size = batch_size
-        self.device = device
+        if device == torch.device('cuda'):
+            if torch.cuda.is_available():
+                print('GPU is used.')
+                self.device = device
+            else:
+                self.device = torch.device('cpu')
+        else:
+            self.device = device
         self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, batch_first=True)
         self.linear = nn.Linear(self.hidden_dim, self.output_dim)
         self.hidden_cell = self.init_hidden(batch_size)
@@ -82,4 +90,48 @@ class LSTM_baseline(nn.Module):
         self.hidden_cell = tuple([hidden_.detach_() for hidden_ in hidden_cell])
         lstm_out = self.linear(lstm_out)
         return torch.tanh(lstm_out)
+    
 
+class LSTMWithH2vSubnet(nn.Module):
+    
+    def __init__(self, input_dim, hidden_dim, h2v_dim=20, h2v_layer_dim=[50,30,1], 
+                 output_dim=1, batch_size=10, device=torch.device('cpu')):
+        super(LSTMWithH2vSubnet, self).__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.h2v_dim = h2v_dim
+        self.h2v_layer_dim = h2v_layer_dim
+        self.output_dim = output_dim
+        self.batch_size = batch_size
+        if device == torch.device('cuda'):
+            if torch.cuda.is_available():
+                print('GPU is used.')
+                self.device = device
+            else:
+                self.device = torch.device('cpu')
+        else:
+            self.device = device
+        self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, batch_first=True)
+        self.linear = nn.Linear(self.hidden_dim+self.h2v_layer_dim[-1], self.output_dim)
+        self.hidden_cell = self.init_hidden(batch_size)
+        h2v_layers = OrderedDict()
+        h2v_layers['Linear0'] = nn.Linear(h2v_dim, h2v_layer_dim[0])
+        for i in range(len(h2v_layer_dim)-1):
+            h2v_layers['Linear'+str(i+1)] = nn.Linear(h2v_layer_dim[i], h2v_layer_dim[i+1])
+        self.h2v_linear = nn.Sequential(h2v_layers)
+        
+    def init_hidden(self, batch_size):
+        """
+        The function to initialize the hidden layer.
+        """
+        return (torch.zeros(1,batch_size,self.hidden_dim).to(self.device),
+               torch.zeros(1,batch_size,self.hidden_dim).to(self.device))
+    
+    def forward(self, inputs, embeddings):
+        lstm_out, hidden_cell = self.lstm(inputs, self.hidden_cell)
+        self.hidden_cell = tuple([hidden_.detach_() for hidden_ in hidden_cell])
+        h2v_out = self.h2v_linear(embeddings)
+        concat_out = torch.cat((lstm_out, h2v_out.repeat(1,lstm_out.shape[1],1).view(-1,lstm_out.shape[1],1)), dim=2)
+        concat_out = self.linear(concat_out)
+        return torch.tanh(concat_out)
+    
