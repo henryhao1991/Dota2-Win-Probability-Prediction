@@ -88,11 +88,9 @@ class TrainingAndEvaluation:
         
         return prediction
     
-    def get_prediction_from_file(self, nparray_from_file):
+    def get_prediction_from_file(self, tensor_from_file):
         
-        data = {"features":torch.tensor(nparray_from_file, dtype=torch.float)}
-        prediction = self.model.predict(data)
-        print(type(data['features']))
+        prediction = self.model.predict(tensor_from_file)
         
         return prediction
 
@@ -148,7 +146,7 @@ class HeuristicTrain:
         results = np.where(end_labels>0, 1.0, -1.0)
         return {"lengths":batch_data["lengths"], "results":results}
 
-    def predict(self, batch_data, threshold=0.25):
+    def predict(self, batch_data):
         """
         Make predictions with a 30 second interval.
         
