@@ -2,8 +2,24 @@ import torch
 import json
 import requests
 import numpy as np
-import os
+import os, sys
+import subprocess
 from collections import defaultdict
+
+def parse_replay(dem_file_path, json_path='./tmp/temp.json'):
+    
+    path_and_file = os.path.split(json_path)
+    if not os.path.isdir(path_and_file[0]):
+        os.makedirs(path_and_file[0])
+        
+    subprocess.call('curl -o '+json_path+' localhost:5600 --data-binary "@'+dem_file_path+'"', shell=True)
+    
+    if os.path.getsize(json_path) == 0:
+        print("The replay file is invalid. Exit.")
+        sys.exit(1)
+    else:
+        print("Repaly file is successfully parsed.")
+    
 
 def json_file_processing(file_path, start_time=0, time_interval=30):
     
