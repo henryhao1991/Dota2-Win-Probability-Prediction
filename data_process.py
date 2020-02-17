@@ -88,7 +88,7 @@ def time_slices_to_input(time_slices):
                 
     return {"lineup": team, "time_info": times_info}
 
-def feature_processing(time_info, lineup, feature='team', embedding_model='./hero_embeddings.txt'):
+def feature_processing(time_info, lineup, feature='team', embedding_model='./model/hero_embeddings.txt'):
     
     assert os.path.exists(embedding_model), "Embedding model not found at {}.".format(embedding_model)
     embeddings = np.loadtxt(embedding_model)

@@ -27,7 +27,8 @@ class TrainingAndEvaluation:
         self.model = self.model_name[model](*args, **kwargs)
         
         #Get the total number of test data
-        self.num_test_data = len(self.model.dataloader["test"])
+        if self.model.dataloader:
+            self.num_test_data = len(self.model.dataloader["test"])
         
     def train(self):
         return self.model.train()
@@ -100,14 +101,17 @@ class HeuristicTrain:
     The class to run the heuristic model. No training needed.
     Parameters can be tuned in model.heuristic
     """
-    def __init__(self, xp_scale_factor=1.0, total_scale_factor=2.0, **kwargs):
+    def __init__(self, xp_scale_factor=1.0, total_scale_factor=2.0, train=True, **kwargs):
         """
         Keywords:
             xp_scale_factor: float. The keyword passing to model.heuristic class.
             total_scale_factor: float. The keyword passing to model.heuristic class.
             **kwargs: The keywords passing to dataloader.split_dataloader function.
         """
-        self.dataloader = split_dataloader(PreprocessedParsedReplayDataset, **kwargs)
+        if train:
+            self.dataloader = split_dataloader(PreprocessedParsedReplayDataset, **kwargs)
+        else:
+            self.dataloader = None
         self.model = heuristic(xp_scale_factor, total_scale_factor)
         
     def preprocess(self, features):
@@ -166,7 +170,7 @@ class LSTMBaselineTrain:
     The class to train the LSTM baseline model and make predictions.
     """
     def __init__(self, input_dim, hidden_dim, output_dim=1, num_epochs=100, lr=0.01, loss_function=nn.MSELoss(), 
-                 batch_size=10, device=torch.device('cpu'), **kwargs):
+                 batch_size=10, device=torch.device('cpu'), train=True, **kwargs):
         """
         Inputs:
             input_dim, hidden_dim: arguments passing to model.LSTM_baseline class.
@@ -177,7 +181,10 @@ class LSTMBaselineTrain:
             loss_function: torch.nn loss function. Loss function used for the training.
             **kwargs: keywords passing to dataloader.split_dataloader function.
         """
-        self.dataloader = split_dataloader(PreprocessedParsedReplayDataset, batch_size=batch_size, **kwargs)
+        if train:
+            self.dataloader = split_dataloader(PreprocessedParsedReplayDataset, batch_size=batch_size, **kwargs)
+        else:
+            self.dataloader = None
         self.model = LSTM_baseline(input_dim, hidden_dim, output_dim=output_dim, batch_size=batch_size, device=device)
         if self.model.device == torch.device('cuda'):
             self.model.cuda()
@@ -301,7 +308,7 @@ class LSTMWithH2vTrain:
     """
     def __init__(self, input_dim, hidden_dim, h2v_dim=20, h2v_layer_dim=[50,30,1], 
                  output_dim=1, num_epochs=100, lr=0.01, loss_function=nn.MSELoss(), 
-                 batch_size=10, device=torch.device('cpu'), **kwargs):
+                 batch_size=10, device=torch.device('cpu'), train=True, **kwargs):
         """
         Inputs:
             input_dim, hidden_dim: arguments passing to model.LSTM_baseline class.
@@ -312,7 +319,10 @@ class LSTMWithH2vTrain:
             loss_function: torch.nn loss function. Loss function used for the training.
             **kwargs: keywords passing to dataloader.split_dataloader function.
         """
-        self.dataloader = split_dataloader(PreprocessedParsedReplayDataset, batch_size=batch_size, **kwargs)
+        if train:
+            self.dataloader = split_dataloader(PreprocessedParsedReplayDataset, batch_size=batch_size, **kwargs)
+        else:
+            self.dataloader = None
         self.model = LSTMWithH2vSubnet(input_dim, hidden_dim, h2v_dim=20, h2v_layer_dim=[50,30,1], 
                                       output_dim=output_dim, batch_size=batch_size, device=device)
         if self.model.device == torch.device('cuda'):
