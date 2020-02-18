@@ -11,18 +11,18 @@ import plotly.graph_objects as go
 import streamlit as st
 
 #Custom python files
-from model import *
+from model.model import *
 from training import *
-from dataloader import *
-from data_process import *
+from util.dataloader import *
+from util.data_process import *
 
 st.title("Dota2 Win Probability Prediction")
 
-upload_file = st.text_input("Type a input replay file path (.dem):", value='./')
+upload_file = st.sidebar.text_input("Type a input replay file path (.dem):", value='./')
 
-selected_model = st.selectbox("Select the model you want to use:", ('--', 'Heuristic', 'LSTM', 'LSTM + Hero2Vec'))
+selected_model = st.sidebar.selectbox("Select the model you want to use:", ('--', 'Heuristic', 'LSTM', 'LSTM + Hero2Vec'))
 
-selected_features = st.selectbox("Select the feature you want to use:", ('--', "Team Features", "Individual Features"))
+selected_features = st.sidebar.selectbox("Select the feature you want to use:", ('--', "Team Features", "Individual Features"))
 
 if selected_model == '--' or selected_features == '--' or upload_file == None:
     st.warning('Please select a model, features, and upload the replay file.')
@@ -52,17 +52,17 @@ if selected_model == "LSTM":
     model_used = TrainingAndEvaluation(input_dim, hidden_dim, model='LSTM_baseline', collate_fn=PadSequence,
                                      batch_size=batch_size, train=False)
     if selected_features == "Team Features":
-        model_used.model.model = torch.load('./model/model_agg.pt')
+        model_used.model.model = torch.load('./saved_model/model_agg.pt')
     elif selected_features == "Individual Features":
-        model_used.model.model = torch.load('./model/model_indi.pt')
+        model_used.model.model = torch.load('./saved_model/model_indi.pt')
 
 elif selected_model == "LSTM + Hero2Vec":
     model_used = TrainingAndEvaluation(input_dim, hidden_dim, model='LSTM_with_h2v', collate_fn=PadSequence,
                                      batch_size=batch_size, train=False)
     if selected_features == "Team Features":
-        model_used.model.model = torch.load('./model/model_agg_h2v_subnet.pt')
+        model_used.model.model = torch.load('./saved_model/model_agg_h2v_subnet.pt')
     elif selected_features == "Individual Features":
-        model_used.model.model = torch.load('./model/model_indi_h2v_subnet.pt')
+        model_used.model.model = torch.load('./saved_model/model_indi_h2v_subnet.pt')
 
 elif selected_model == "Heuristic":
     model_used = TrainingAndEvaluation(model='heuristic', collate_fn=PadSequence)

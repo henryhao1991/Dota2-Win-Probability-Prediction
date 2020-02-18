@@ -2,8 +2,8 @@
 import torch
 
 # Custom Python files
-from dataloader import *
-from model import *
+from util.dataloader import *
+from model.model import *
 
 # Other libraries
 import numpy as np
