@@ -98,6 +98,24 @@ pip3 install torch torchvision
 
 The example code of how to train and check the results can be found in the Jupyter notebooks under results_notebooks folder.
 
+To run the Sreamlit App, first clone the repo of the parser provided by OpenDota:
+
+```
+git clone https://github.com/odota/parser.git
+```
+
+Then navigate to the /script folder and run the script rebuild.sh.
+
+Under the main folder, run:
+
+```
+streamlit run streamlit_demo.py
+```
+
+And it will open up in the browser.
+
+To get the replay file (.dem format), either download it in the game client, or get the download address using OpenDota's API: https://docs.opendota.com/#tag/matches
+
 ## Details of the Implementation
 
 - Raw data: Replay files (.dem format). Fetched using OpenDota's API.
