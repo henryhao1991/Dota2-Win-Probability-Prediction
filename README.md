@@ -32,6 +32,7 @@ The deliverable of the project is a Streamlit App that allows user to specify a 
 ## Repo Structure
 
 Below is the structure of this repo.
+
     ├── README.md
     ├── images
     │   └── Images used for readme
