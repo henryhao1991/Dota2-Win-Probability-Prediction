@@ -4,8 +4,10 @@
 1. [Motivations](README.md#motivations)
 2. [Overview of the Project](README.md#overview-of-the-project)
 3. [Repo Structure](README.md#repo-structure)
-9. [Setup](README.md#setup)
-10. [Usage](README.md#usage)
+4. [Requirements](README.md#requirements)
+5. [Setup](README.md#setup)
+6. [Run A Train and Test](README.md#run-a-train-and-test)
+10. [Details of the Implementation](README.md#details-of-the-implementation)
 
 This project trained and provided models to predict and plot the win probability of both teams over time, given the replay file of a specific game.
 
