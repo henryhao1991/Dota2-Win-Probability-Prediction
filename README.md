@@ -135,7 +135,7 @@ To get the replay file (.dem format), either download it in the game client, or 
   * Team embeddings: An vector embedding for heroes is trained. The graph below shows the results of the embedding in 2 eigenvector directions corresponding to the 2 largest eigenvalues of PCA. We can see, the results clustered based on the preferred roles for different heros (carries, mid-lane, off-lane, supports), while the more flexible heroes lies in the middle of their usual roles.
 <br/>
   <p float="left">
-    <img src="docs/images/hero2vec.png" width="800" />
+    <img src="images/hero2vec.png" width="800" />
   </p>
 
 - Model used:
