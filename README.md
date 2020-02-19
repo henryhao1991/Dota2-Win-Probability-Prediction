@@ -26,7 +26,7 @@ In this project, I trained LSTM models that takes the processed inputs from a ga
 The deliverable of the project is a Streamlit App that allows user to specify a replay file, and then parses the file and generates the win probability graph using the selected model. The example of how the App looks like is shown below.
 
 <p float="left">
-  <img src="docs/images/win_prob_demo.gif" width="800" />
+  <img src="images/streamlit_demo.gif" width="800" />
 </p>
 
 ## Repo Structure
@@ -43,21 +43,60 @@ Below is the structure of this repo.
     │   └── __init__.py
     │   └── dataloader.py
     │   └── data_process.py
-    ├── h2v_training.py
-    ├── training.py
-    ├── streamlit_demo.py
     ├── saved_model
     │   └── hero_embeddings.txt    
     │   └── model_agg.pt
     │   └── model_indi.pt
     │   └── model_agg_h2v_subnet.pt
     │   └── model_indi_h2v_subnet.pt
-    └── results_notebooks
-        └── hero2vec_result.ipynb
-        └── LSTM_training.ipynb
-        └── results_comparison.ipynb
+    ├── results_notebooks
+    │   └── hero2vec_result.ipynb
+    │   └── LSTM_training.ipynb
+    │   └── results_comparison.ipynb
+    ├── h2v_training.py
+    ├── training.py
+    ├── streamlit_demo.py
+    └── setup.sh
+
+## Requirements
+
+```
+pytorch==1.0.1
+numpy==1.17.3
+scikit-learn==0.22
+matplotlib==3.1.2
+```
+
+For the Streamlit App:
+
+```
+streamlit==0.54.0
+plotly==4.5.0
+```
+
+Optional (For better text arrangement of hero2vec result):
+
+```
+adjusttext==0.7.3.1
+```
+
+## Setup
+
+Under the main folder, run:
+
+```
+bash setup.sh
+```
+
+If issues occurs with installing pytorch, please refer to http://pytorch.org/ for installation of pytorch, and comment out the line
+
+```
+pip3 install torch torchvision
+```
 
 ## Run A Train and Test
+
+The example code of how to train and check the results can be found in the Jupyter notebooks under results_notebooks folder.
 
 ## Details of the Implementation
 
