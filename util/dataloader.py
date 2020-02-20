@@ -16,7 +16,7 @@ class PreprocessedParsedReplayDataset(Dataset):
     Each txt file in the folder is for 1 game.
     """
     
-    def __init__(self, feature_folder='./data/features/', label_folder='./data/labels/'):
+    def __init__(self, feature_folder='./data/mixed/features/', label_folder='./data/mixed/labels/', embedding_folder='./data/mixed/embedding_feature/'):
         """
         Keywords:
         feature_folder: string. The folder path for input features.
@@ -24,7 +24,8 @@ class PreprocessedParsedReplayDataset(Dataset):
         """
         self.feature_folder = feature_folder
         self.label_folder = label_folder
-        assert len(os.listdir(self.feature_folder))==len(os.listdir(self.label_folder)), "Number of files in feature and label folders do not match."
+        self.embedding_folder = embedding_folder
+        assert len(os.listdir(self.feature_folder))==len(os.listdir(self.label_folder))==len(os.listdir(self.embedding_folder)), "Number of files in feature, label and embedding folders do not match."
         self.num_games = len(os.listdir(self.feature_folder))
         
     def __len__(self):
@@ -42,14 +43,16 @@ class PreprocessedParsedReplayDataset(Dataset):
         """
         feature_path = os.path.join(self.feature_folder,str(int(ind))+'.txt')
         label_path = os.path.join(self.label_folder,str(int(ind))+'.txt')
+        embedding_path = os.path.join(self.embedding_folder,str(int(ind))+'.txt')
         
         #To do: check if file exists before using np.loadtxt
         features = np.loadtxt(feature_path)
         labels = np.loadtxt(label_path)
         length = len(labels)
+        embeddings = np.loadtxt(embedding_path)
         
         #Return features/labels/lengths_of_game as a dictionary
-        return {"features":torch.Tensor(features), "labels":torch.Tensor(labels), "lengths":length}
+        return {"features":torch.Tensor(features), "labels":torch.Tensor(labels), "embeddings":torch.Tensor(embeddings), "lengths":length}
     
     
 class Hero2vecDataset(Dataset):
@@ -57,8 +60,8 @@ class Hero2vecDataset(Dataset):
     The dataloader class to load data for the hero2vec training.
     '''
     
-    def __init__(self, lineup_file = './data/pro_lineup.txt'):
-        assert os.path.exists(lineup_file), "Lineup file doesn't exist."
+    def __init__(self, lineup_file = './data/mixed_lineup.txt'):
+        assert os.path.exists(lineup_file), "Lineup file {} doesn't exist.".format(lineup_file)
         self.lineup = np.loadtxt(lineup_file) - 1
         
     def __len__(self):
@@ -91,24 +94,29 @@ def PadSequence(batch):
     max_length = max(lengths)
     lengths = torch.Tensor(lengths)
     
+    #Get the embedding feature but don't do anything
+    embeddings = [x["embeddings"] for x in batch]
+    
     #Get the sequences, i.e., features and pad them
     sequences = [x["features"] for x in batch]
     sequences_padded = []
     for s in sequences:
-        while s.shape[0] < max_length:
-            s = torch.cat((s, s[-1,:].view(1,-1)))
-        sequences_padded.append(s)
+        single_game_sequence = s
+        while single_game_sequence.shape[0] < max_length:
+            single_game_sequence = torch.cat((single_game_sequence, single_game_sequence[-1,:].view(1,-1)))
+        sequences_padded.append(single_game_sequence)
     
     #Get the labels and pad them
     labels = [x["labels"] for x in batch]
     labels_padded = []
     for l in labels:
-        while l.shape[0] < max_length:
-            l = torch.cat((l, l[-1].view(1)))
-        labels_padded.append(l)
+        single_game_label = l
+        while single_game_label.shape[0] < max_length:
+            single_game_label = torch.cat((single_game_label, single_game_label[-1].view(1)))
+        labels_padded.append(single_game_label)
     
     #return the padded_features/padded_labels/lengths_of_game and labels as a dictionary
-    return {"features":torch.stack(sequences_padded), "labels":torch.stack(labels_padded), "lengths":lengths}
+    return {"features":torch.stack(sequences_padded), "labels":torch.stack(labels_padded), "embeddings":torch.stack(embeddings), "lengths":lengths}
 
 
 def split_dataloader(dataset, batch_size=1, total_num_games=-1, p_val=0.1, p_test=0.2, seed=3154, shuffle=True, 

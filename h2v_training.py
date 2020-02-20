@@ -4,47 +4,11 @@ import torch.nn as nn
 import torch.optim as optim
 
 #Custom Python files
-from dataloader import Hero2vecDataset, split_dataloader
+from util.dataloader import Hero2vecDataset, split_dataloader
+from model.h2v_model import *
 
 #Other libraries
 import numpy as np
-
-class Hero2vecNetwork(nn.Module):
-    '''
-    Hero2vec network.
-    '''
-    
-    def __init__(self, embedding_dim, heropool_size=129):
-        '''
-        Inputs:
-            embedding_dim: int. The number of embedding dimension.
-        Keywords:
-            heropool_size: int. The number of largest hero index. (Not the number of total heroes, since some index are not used currently in Dota2.)
-        '''
-        super().__init__()
-        self.embedding_dim = embedding_dim
-        self.hero_embedding = nn.Embedding(heropool_size, self.embedding_dim)
-        self.embedding_to_target = nn.Linear(self.embedding_dim, heropool_size)
-        self.init_network()
-        
-    def init_network(self):
-        '''
-        Initiallize the network.
-        Currently not used. Maybe will need it later.
-        '''
-        pass
-    
-    def forward(self, inputs):
-        '''
-        Inputs:
-            inputs: torch.LongTensor, size=(4,)
-        Returns:
-            out: torch.LongTensor, size=(1,)
-        '''
-        embedding = self.hero_embedding(inputs).sum(dim=1)
-        out = self.embedding_to_target(embedding)
-        
-        return out
     
 
 class Hero2vecTrain:
@@ -52,7 +16,7 @@ class Hero2vecTrain:
     Class for hero2vec training.
     '''
     
-    def __init__(self, embedding_dim, heropool_size=129, lineup_file = './data/pro_lineup.txt', 
+    def __init__(self, embedding_dim, heropool_size=129, lineup_file = './data/mixed_lineup.txt', 
                 loss_function=nn.CrossEntropyLoss(), init_lr=0.1, epochs=100, lr_decay_epoch = 30,
               lr_decay_rate = 0.1, print_epoch = 10, gpu=False):
         """
