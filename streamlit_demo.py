@@ -18,25 +18,28 @@ from util.data_process import *
 
 st.title("Dota2 Win Probability Prediction")
 
+# Streamlit sidebar.
 upload_file = st.sidebar.text_input("Type a input replay file path (.dem):", value='./')
-
 selected_model = st.sidebar.selectbox("Select the model you want to use:", ('--', 'Heuristic', 'LSTM', 'LSTM + Hero2Vec'))
-
 selected_features = st.sidebar.selectbox("Select the feature you want to use:", ('--', "Team Features", "Individual Features"))
 
+# If model and features are not selected or upload file path not provided, raise the error and don't do anything.
 if selected_model == '--' or selected_features == '--' or upload_file == None:
     st.warning('Please select a model, features, and upload the replay file.')
     raise st.ScriptRunner.StopException
-    
+
+# If replay file is not found, raise error
 if not os.path.exists(upload_file):
     st.warning('Replay file not found. Please check the path you typed.')
     raise st.ScriptRunner.StopException
-    
+
+# Parse the replay, and get the features we want.
 json_path = './tmp/temp.json'
 parse_replay(upload_file, json_path=json_path)
 time_slices = json_file_processing(json_path)
 data = time_slices_to_input(time_slices)
 
+# Parameters used for models.
 hidden_dim = 50
 batch_size = 20
 if selected_features == "Team Features":
@@ -45,9 +48,11 @@ if selected_features == "Team Features":
 elif selected_features == "Individual Features":
     input_dim = 24
     feature='individual'
-    
+
+# Process the features.
 inputs = feature_processing(data['time_info'], data['lineup'], feature=feature)
 
+# Load the respective model based on the choice.
 if selected_model == "LSTM":
     model_used = TrainingAndEvaluation(input_dim, hidden_dim, model='LSTM_baseline', collate_fn=PadSequence,
                                      batch_size=batch_size, train=False)
@@ -67,12 +72,13 @@ elif selected_model == "LSTM + Hero2Vec":
 elif selected_model == "Heuristic":
     model_used = TrainingAndEvaluation(model='heuristic', collate_fn=PadSequence)
 
-
+# Get the probability prediction for the plot.
 sample_graph = model_used.get_prediction_from_file(inputs)
 prob = sample_graph.numpy().squeeze()
 
 time_stamp = 0.5*np.arange(len(prob))
 
+# Plot figure using plotly
 fig = go.Figure()
 fig.add_trace(go.Scatter(x=time_stamp, y=prob, mode='lines',
                         hovertemplate='Time: %{x} min<br>Radiant Win Probability: %{y:.2f}', name='', showlegend = False))
@@ -89,7 +95,5 @@ fig.add_shape(
                 width=1,
             ),
     ))
-
 fig['layout']['yaxis1'].update(title='',range=[0, 1], autorange=False)
-
 st.plotly_chart(fig)
