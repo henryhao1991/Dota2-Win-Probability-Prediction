@@ -14,6 +14,8 @@ import numpy as np
 class Hero2vecTrain:
     '''
     Class for hero2vec training.
+    Inspired by the following repo:
+    https://github.com/ybw9000/hero2vec
     '''
     
     def __init__(self, embedding_dim, heropool_size=129, lineup_file = './data/mixed_lineup.txt', 

@@ -19,8 +19,8 @@ class PreprocessedParsedReplayDataset(Dataset):
     def __init__(self, feature_folder='./data/mixed/features/', label_folder='./data/mixed/labels/', embedding_folder='./data/mixed/embedding_feature/'):
         """
         Keywords:
-        feature_folder: string. The folder path for input features.
-        label_folder: string. The folder path for labels.
+            feature_folder: string. The folder path for input features.
+            label_folder: string. The folder path for labels.
         """
         self.feature_folder = feature_folder
         self.label_folder = label_folder
@@ -58,6 +58,8 @@ class PreprocessedParsedReplayDataset(Dataset):
 class Hero2vecDataset(Dataset):
     '''
     The dataloader class to load data for the hero2vec training.
+    Inspired by the following repo:
+    https://github.com/ybw9000/hero2vec
     '''
     
     def __init__(self, lineup_file = './data/mixed_lineup.txt'):

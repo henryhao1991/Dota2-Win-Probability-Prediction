@@ -10,6 +10,8 @@ import numpy as np
 class Hero2vecNetwork(nn.Module):
     '''
     Hero2vec network.
+    Inspired by the following repo:
+    https://github.com/ybw9000/hero2vec
     '''
     
     def __init__(self, embedding_dim, heropool_size=129):
